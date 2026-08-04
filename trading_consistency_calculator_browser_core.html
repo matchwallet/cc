@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f3f4f6" />
+  <title>Trading Consistency Calculator</title>
+  
+  <style>
+    :root{
+      --bg:#f3f4f6;
+      --panel:#ffffff;
+      --panel-alt:#f9fafb;
+      --panel-code:#f8fafc;
+      --text:#111827;
+      --muted:#6b7280;
+      --muted-2:#9ca3af;
+      --line:#e5e7eb;
+      --line-strong:#d1d5db;
+      --cyan:#06B6D4;
+      --cyan-dark:#0891B2;
+      --cyan-soft:rgba(6,182,212,.10);
+      --green:#059669;
+      --green-soft:rgba(5,150,105,.08);
+      --red:#dc2626;
+      --red-soft:rgba(220,38,38,.07);
+      --amber:#d97706;
+      --amber-soft:rgba(217,119,6,.08);
+      --shadow:0 1px 3px 0 rgba(0,0,0,.10);
+      --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+      --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --radius:8px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-width:320px;
+      min-height:100vh;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        linear-gradient(rgba(229,231,235,.30) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(229,231,235,.30) 1px,transparent 1px),
+        var(--bg);
+      background-size:20px 20px;
+    }
+
+    *{
+      scrollbar-width:auto;
+      scrollbar-color:#d1d5db transparent;
+    }
+
+    *::-webkit-scrollbar{width:10px;height:10px}
+    *::-webkit-scrollbar-track{background:transparent}
+    *::-webkit-scrollbar-thumb{
+      background:#d1d5db;
+      border:2px solid transparent;
+      background-clip:padding-box;
+      border-radius:10px;
+    }
+    *::-webkit-scrollbar-thumb:hover{background:#9ca3af;background-clip:padding-box}
+
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+
+    .app{
+      width:min(1320px,calc(100% - 32px));
+      margin:24px auto;
+      padding:0;
+      border:1px solid var(--line-strong);
+      background:rgba(255,255,255,.88);
+      box-shadow:0 12px 35px rgba(17,24,39,.08);
+      backdrop-filter:blur(4px);
+      animation:slideUp .4s ease both;
+    }
+
+    .topbar{
+      min-height:88px;
+      display:flex;
+      justify-content:space-between;
+      gap:24px;
+      align-items:center;
+      margin:0;
+      padding:20px 24px;
+      background:var(--panel);
+      border-bottom:1px solid var(--line);
+      position:relative;
+    }
+
+    .topbar::before{
+      content:"LIVE CALCULATOR";
+      position:absolute;
+      left:24px;
+      top:12px;
+      font:600 9px/1 var(--mono);
+      color:var(--cyan-dark);
+      letter-spacing:.12em;
+    }
+
+    .title-wrap{padding-top:10px}
+
+    .title-wrap h1{
+      margin:0;
+      font-size:clamp(28px,4vw,44px);
+      line-height:1;
+      letter-spacing:-.04em;
+      font-weight:600;
+    }
+
+    .title-wrap p{
+      margin:9px 0 0;
+      color:var(--muted);
+      line-height:1.6;
+      max-width:780px;
+      font-size:13px;
+    }
+
+    .status{
+      border:1px solid rgba(217,119,6,.30);
+      background:var(--amber-soft);
+      color:var(--amber);
+      border-radius:4px;
+      padding:9px 12px;
+      white-space:nowrap;
+      font:600 10px/1 var(--mono);
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      box-shadow:var(--shadow);
+    }
+
+    .status.good{
+      border-color:rgba(5,150,105,.28);
+      background:var(--green-soft);
+      color:var(--green);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(12,minmax(0,1fr));
+      gap:16px;
+      padding:16px;
+      background:
+        linear-gradient(rgba(229,231,235,.18) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(229,231,235,.18) 1px,transparent 1px),
+        #f8fafc;
+      background-size:20px 20px;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      animation:slideUp .4s ease both;
+    }
+
+    .card:nth-child(2){animation-delay:.04s}
+    .card:nth-child(3){animation-delay:.08s}
+    .card:nth-child(4){animation-delay:.12s}
+    .card:nth-child(5){animation-delay:.16s}
+
+    .settings{grid-column:span 4}
+    .overview{grid-column:span 8}
+    .trades{grid-column:span 7}
+    .daily{grid-column:span 5}
+    .scenarios{grid-column:span 12}
+
+    .card-head{
+      padding:16px 16px 0;
+      background:var(--panel);
+    }
+
+    .card-head h2{
+      margin:0;
+      font-size:16px;
+      font-weight:600;
+      letter-spacing:-.02em;
+    }
+
+    .card-head p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.55;
+    }
+
+    .card-body{padding:16px}
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+
+    .field.full{grid-column:1/-1}
+
+    label{
+      font:500 10px/1.35 var(--mono);
+      color:var(--muted);
+      letter-spacing:.02em;
+    }
+
+    input,select{
+      width:100%;
+      min-height:36px;
+      border:1px solid var(--line-strong);
+      border-radius:4px;
+      background:var(--panel);
+      color:var(--text);
+      padding:8px 10px;
+      outline:none;
+      font:12px/1.2 var(--mono);
+      transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+    }
+
+    input:hover,select:hover{border-color:var(--cyan)}
+    input:focus,select:focus{
+      border-color:var(--cyan);
+      box-shadow:0 0 0 3px var(--cyan-soft);
+      background:#fff;
+    }
+
+    .hint{
+      color:var(--muted);
+      font:10px/1.55 var(--mono);
+      border-left:2px solid var(--cyan);
+      padding-left:8px;
+    }
+
+    .metrics{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      border:1px solid var(--line);
+      background:var(--panel);
+    }
+
+    .metric{
+      background:var(--panel);
+      border-right:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      padding:14px;
+      min-width:0;
+    }
+
+    .metric:nth-child(4n){border-right:0}
+    .metric:nth-last-child(-n+4){border-bottom:0}
+
+    .metric span{
+      display:block;
+      color:var(--muted-2);
+      font:500 9px/1.3 var(--mono);
+      margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+    }
+
+    .metric strong{
+      display:block;
+      font:600 21px/1.1 var(--mono);
+      letter-spacing:-.04em;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .positive{color:var(--green)!important}
+    .negative{color:var(--red)!important}
+    .warning{color:var(--amber)!important}
+    .blue{color:var(--cyan-dark)!important}
+
+    .progress-wrap{margin-top:16px}
+
+    .progress-meta{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font:9px/1.4 var(--mono);
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+
+    .progress{
+      height:8px;
+      border:1px solid var(--line-strong);
+      background:var(--panel-alt);
+      border-radius:2px;
+      overflow:hidden;
+    }
+
+    .progress > div{
+      width:0;
+      height:100%;
+      background:var(--cyan);
+      transition:width .35s ease-in-out;
+    }
+
+    .forecast-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .forecast-box{
+      border:1px solid var(--line);
+      background:var(--panel-alt);
+      border-radius:4px;
+      padding:14px;
+      position:relative;
+    }
+
+    .forecast-box::before{
+      content:"";
+      position:absolute;
+      left:-1px;
+      top:-1px;
+      bottom:-1px;
+      width:3px;
+      background:var(--cyan);
+    }
+
+    .forecast-box .label{
+      color:var(--muted);
+      font:500 9px/1.3 var(--mono);
+      margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .forecast-box .value{
+      font:600 clamp(26px,4vw,38px)/1 var(--mono);
+      letter-spacing:-.05em;
+    }
+
+    .forecast-box .detail{
+      color:#4b5563;
+      font:10px/1.6 var(--mono);
+      margin-top:9px;
+    }
+
+    .notice{
+      margin-top:12px;
+      border-radius:4px;
+      padding:11px 12px;
+      font:10px/1.65 var(--mono);
+    }
+
+    .notice.warn{
+      background:var(--amber-soft);
+      border:1px solid rgba(217,119,6,.25);
+      color:#92400e;
+    }
+
+    .notice.good{
+      background:var(--green-soft);
+      border:1px solid rgba(5,150,105,.25);
+      color:#065f46;
+    }
+
+    .trade-form{
+      display:grid;
+      grid-template-columns:1fr 1fr 1.4fr auto;
+      gap:8px;
+      align-items:end;
+      margin-bottom:12px;
+      padding:12px;
+      background:var(--panel-alt);
+      border:1px solid var(--line);
+    }
+
+    .btn{
+      border-radius:4px;
+      min-height:36px;
+      padding:0 12px;
+      font:600 10px/1 var(--mono);
+      letter-spacing:.02em;
+      transition:border-color .16s ease,color .16s ease,background .16s ease,transform .16s ease;
+    }
+
+    .btn.primary{
+      color:#fff;
+      background:var(--cyan);
+      border:1px solid var(--cyan);
+    }
+
+    .btn.primary:hover{
+      background:var(--cyan-dark);
+      border-color:var(--cyan-dark);
+      transform:translateY(-1px);
+    }
+
+    .btn.secondary{
+      background:#fff;
+      color:#374151;
+      border:1px solid var(--line-strong);
+    }
+
+    .btn.secondary:hover{
+      color:var(--cyan-dark);
+      border-color:var(--cyan);
+      background:var(--cyan-soft);
+    }
+
+    .btn.danger{
+      background:#fff;
+      color:var(--red);
+      border:1px solid rgba(220,38,38,.28);
+    }
+
+    .btn.danger:hover{background:var(--red-soft);border-color:var(--red)}
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:4px;
+      background:var(--panel);
+      max-height:360px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:610px;
+    }
+
+    th,td{
+      padding:9px 10px;
+      text-align:left;
+      border-bottom:1px solid var(--line);
+      font-size:11px;
+    }
+
+    th{
+      position:sticky;
+      top:0;
+      z-index:1;
+      background:var(--panel-alt);
+      color:var(--muted);
+      font:600 9px/1.2 var(--mono);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    td{color:#374151}
+    td:first-child,td.num{font-family:var(--mono)}
+    tr:last-child td{border-bottom:0}
+    tbody tr:hover{background:var(--cyan-soft)}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+
+    .mini-btn{
+      padding:5px 8px;
+      border-radius:3px;
+      border:1px solid var(--line-strong);
+      background:#fff;
+      color:var(--muted);
+      font:600 9px/1 var(--mono);
+    }
+
+    .mini-btn:hover{
+      border-color:var(--red);
+      color:var(--red);
+      background:var(--red-soft);
+    }
+
+    .empty{
+      padding:22px;
+      text-align:center;
+      color:var(--muted-2);
+      font:10px/1.5 var(--mono);
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .scenario-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .scenario{
+      border:1px solid var(--line);
+      background:var(--panel-alt);
+      border-radius:4px;
+      padding:12px;
+      transition:border-color .16s ease,transform .16s ease,box-shadow .16s ease;
+    }
+
+    .scenario:hover{
+      border-color:var(--cyan);
+      transform:translateY(-2px);
+      box-shadow:var(--shadow);
+    }
+
+    .scenario .target{
+      color:var(--cyan-dark);
+      font:600 10px/1.3 var(--mono);
+      text-transform:uppercase;
+    }
+
+    .scenario strong{
+      display:block;
+      font:600 20px/1.1 var(--mono);
+      margin:8px 0 6px;
+      color:var(--text);
+    }
+
+    .scenario small{
+      display:block;
+      color:var(--muted);
+      font:9px/1.6 var(--mono);
+    }
+
+    .disclaimer{
+      margin:0;
+      color:var(--muted);
+      font:9px/1.65 var(--mono);
+      text-align:center;
+      padding:14px 20px 18px;
+      border-top:1px solid var(--line);
+      background:var(--panel-alt);
+    }
+
+    .hidden{display:none!important}
+
+    @keyframes slideUp{
+      from{opacity:0;transform:translateY(14px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    @media(max-width:980px){
+      .settings,.overview,.trades,.daily{grid-column:span 12}
+      .scenario-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    @media(max-width:720px){
+      .app{
+        width:100%;
+        margin:0;
+        border-left:0;
+        border-right:0;
+      }
+
+      .topbar{
+        align-items:flex-start;
+        flex-direction:column;
+        padding:20px 16px 16px;
+      }
+
+      .topbar::before{left:16px}
+
+      .grid{padding:12px;gap:12px}
+      .form-grid,.forecast-grid{grid-template-columns:1fr}
+      .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .metric:nth-child(4n){border-right:1px solid var(--line)}
+      .metric:nth-child(2n){border-right:0}
+      .metric:nth-last-child(-n+4){border-bottom:1px solid var(--line)}
+      .metric:nth-last-child(-n+2){border-bottom:0}
+
+      .trade-form{grid-template-columns:1fr 1fr}
+      .trade-form .note-field{grid-column:1/-1}
+      .trade-form .add-wrap{grid-column:1/-1}
+      .trade-form .btn{width:100%}
+      .scenario-grid{grid-template-columns:1fr}
+    }
+
+    @media(max-width:460px){
+      .metrics{grid-template-columns:1fr}
+      .metric{border-right:0!important;border-bottom:1px solid var(--line)!important}
+      .metric:last-child{border-bottom:0!important}
+      .trade-form{grid-template-columns:1fr}
+      .trade-form .note-field,.trade-form .add-wrap{grid-column:auto}
+    }
+  </style>
+
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1>Trading Consistency Calculator</h1>
+        <p>Enter all closed trades. Same-day trades are automatically combined into one daily net P&amp;L before consistency and payout forecast are calculated.</p>
+      </div>
+      <div id="eligibilityPill" class="status">Calculating…</div>
+    </header>
+
+    <section class="grid">
+      <article class="card settings">
+        <div class="card-head">
+          <h2>Account Settings</h2>
+          <p>Change the consistency rule and forecast assumptions anytime.</p>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="accountSize">Account size ($)</label>
+              <input id="accountSize" type="number" min="0" step="0.01" value="1000">
+            </div>
+            <div class="field">
+              <label for="targetConsistency">Target consistency (%)</label>
+              <input id="targetConsistency" type="number" min="0.01" max="100" step="0.01" value="15">
+            </div>
+            <div class="field">
+              <label for="dailyTarget">Planned net profit/day ($)</label>
+              <input id="dailyTarget" type="number" min="0.01" step="0.01" value="10">
+            </div>
+            <div class="field">
+              <label for="lossBuffer">Expected future loss buffer ($)</label>
+              <input id="lossBuffer" type="number" min="0" step="0.01" value="0">
+            </div>
+            <div class="field">
+              <label for="startDate">First planned trading date</label>
+              <input id="startDate" type="date">
+            </div>
+            <div class="field">
+              <label for="schedule">Trading schedule</label>
+              <select id="schedule">
+                <option value="weekdays" selected>Monday–Friday</option>
+                <option value="daily">Every day</option>
+              </select>
+            </div>
+            <div class="field full">
+              <div class="hint">Lower consistency score is better. Loss buffer adds expected future losses to the remaining profit requirement.</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card overview">
+        <div class="card-head">
+          <h2>Live Status &amp; Forecast</h2>
+          <p>Consistency = highest profitable day ÷ total net profit × 100</p>
+        </div>
+        <div class="card-body">
+          <div class="metrics">
+            <div class="metric">
+              <span>Account size</span>
+              <strong id="accountMetric">$1,000.00</strong>
+            </div>
+            <div class="metric">
+              <span>Total net profit</span>
+              <strong id="totalProfit">$0.00</strong>
+            </div>
+            <div class="metric">
+              <span>Highest profit day</span>
+              <strong id="highestDay">$0.00</strong>
+            </div>
+            <div class="metric">
+              <span>Current consistency</span>
+              <strong id="currentConsistency">—</strong>
+            </div>
+            <div class="metric">
+              <span>Account return</span>
+              <strong id="accountReturn">0.00%</strong>
+            </div>
+            <div class="metric">
+              <span>Required total profit</span>
+              <strong id="requiredTotal">$0.00</strong>
+            </div>
+            <div class="metric">
+              <span>Required profitable days</span>
+              <strong id="requiredDays">0</strong>
+            </div>
+            <div class="metric">
+              <span>Projected consistency</span>
+              <strong id="projectedConsistency">—</strong>
+            </div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-meta">
+              <span id="progressText">Target calculation loading…</span>
+              <span>Lower is better</span>
+            </div>
+            <div class="progress"><div id="progressBar"></div></div>
+          </div>
+
+          <div class="forecast-grid">
+            <div class="forecast-box">
+              <div class="label">Additional net profit required</div>
+              <div class="value" id="additionalNeeded">$0.00</div>
+              <div class="detail" id="neededDetail">—</div>
+            </div>
+            <div class="forecast-box">
+              <div class="label">Estimated eligibility</div>
+              <div class="value" id="forecastDays">—</div>
+              <div class="detail" id="forecastDate">—</div>
+            </div>
+          </div>
+
+          <div id="forecastNotice" class="notice warn">—</div>
+        </div>
+      </article>
+
+      <article class="card trades">
+        <div class="card-head">
+          <h2>Add Closed Trades</h2>
+          <p>Enter profit as a positive value and loss as a negative value.</p>
+        </div>
+        <div class="card-body">
+          <form id="tradeForm" class="trade-form">
+            <div class="field">
+              <label for="tradeDate">Trading date</label>
+              <input id="tradeDate" type="date" required>
+            </div>
+            <div class="field">
+              <label for="tradePnl">Net P&amp;L ($)</label>
+              <input id="tradePnl" type="number" step="0.01" placeholder="6.98 or -4.50" required>
+            </div>
+            <div class="field note-field">
+              <label for="tradeNote">Note / trade name</label>
+              <input id="tradeNote" type="text" maxlength="80" placeholder="Optional">
+            </div>
+            <div class="add-wrap">
+              <button class="btn primary" type="submit">Add trade</button>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Note</th>
+                  <th class="num">P&amp;L</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tradeRows"></tbody>
+            </table>
+            <div id="emptyTrades" class="empty hidden">No trades added yet.</div>
+          </div>
+
+          <div class="actions">
+            <button id="exportCsv" class="btn secondary" type="button">Export CSV</button>
+            <button id="exportJson" class="btn secondary" type="button">Backup JSON</button>
+            <label class="btn secondary" for="importJson" style="display:inline-flex;align-items:center">Import JSON</label>
+            <input id="importJson" class="hidden" type="file" accept=".json,application/json">
+            <button id="resetData" class="btn danger" type="button">Reset all</button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card daily">
+        <div class="card-head">
+          <h2>Daily Net Summary</h2>
+          <p>All trades from the same date are grouped into one daily result.</p>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th class="num">Trades</th>
+                  <th class="num">Daily net</th>
+                </tr>
+              </thead>
+              <tbody id="dailyRows"></tbody>
+            </table>
+            <div id="emptyDays" class="empty hidden">Daily summary will appear here.</div>
+          </div>
+          <div id="dailyWarning" class="notice warn hidden"></div>
+        </div>
+      </article>
+
+      <article class="card scenarios">
+        <div class="card-head">
+          <h2>Daily Profit Scenarios</h2>
+          <p>Compare required profit, days and projected consistency for different daily targets.</p>
+        </div>
+        <div class="card-body">
+          <div id="scenarioGrid" class="scenario-grid"></div>
+        </div>
+      </article>
+    </section>
+
+    <div class="disclaimer">
+      This calculator uses closed-trade net P&amp;L grouped by trading date. Your prop firm's official dashboard remains the final authority for server timezone, commissions, swaps, open-trade handling, minimum profit requirements and payout rules.
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "tradingConsistencyCalculatorV3";
+
+      const els = {
+        accountSize: document.getElementById("accountSize"),
+        targetConsistency: document.getElementById("targetConsistency"),
+        dailyTarget: document.getElementById("dailyTarget"),
+        lossBuffer: document.getElementById("lossBuffer"),
+        startDate: document.getElementById("startDate"),
+        schedule: document.getElementById("schedule"),
+        tradeForm: document.getElementById("tradeForm"),
+        tradeDate: document.getElementById("tradeDate"),
+        tradePnl: document.getElementById("tradePnl"),
+        tradeNote: document.getElementById("tradeNote"),
+        tradeRows: document.getElementById("tradeRows"),
+        dailyRows: document.getElementById("dailyRows"),
+        emptyTrades: document.getElementById("emptyTrades"),
+        emptyDays: document.getElementById("emptyDays"),
+        accountMetric: document.getElementById("accountMetric"),
+        totalProfit: document.getElementById("totalProfit"),
+        highestDay: document.getElementById("highestDay"),
+        currentConsistency: document.getElementById("currentConsistency"),
+        accountReturn: document.getElementById("accountReturn"),
+        requiredTotal: document.getElementById("requiredTotal"),
+        requiredDays: document.getElementById("requiredDays"),
+        projectedConsistency: document.getElementById("projectedConsistency"),
+        additionalNeeded: document.getElementById("additionalNeeded"),
+        neededDetail: document.getElementById("neededDetail"),
+        forecastDays: document.getElementById("forecastDays"),
+        forecastDate: document.getElementById("forecastDate"),
+        forecastNotice: document.getElementById("forecastNotice"),
+        progressBar: document.getElementById("progressBar"),
+        progressText: document.getElementById("progressText"),
+        eligibilityPill: document.getElementById("eligibilityPill"),
+        dailyWarning: document.getElementById("dailyWarning"),
+        scenarioGrid: document.getElementById("scenarioGrid"),
+        exportCsv: document.getElementById("exportCsv"),
+        exportJson: document.getElementById("exportJson"),
+        importJson: document.getElementById("importJson"),
+        resetData: document.getElementById("resetData")
+      };
+
+      const todayISO = () => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset();
+        return new Date(now.getTime() - offset * 60000).toISOString().slice(0,10);
+      };
+
+      const uid = () => (
+        window.crypto && typeof window.crypto.randomUUID === "function"
+          ? window.crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+      );
+
+      const defaultState = () => ({
+        settings: {
+          accountSize: 1000,
+          targetConsistency: 15,
+          dailyTarget: 10,
+          lossBuffer: 0,
+          startDate: todayISO(),
+          schedule: "weekdays"
+        },
+        trades: [
+          { id: uid(), date: "2026-07-31", pnl: 5.82, note: "Current trade 1" },
+          { id: uid(), date: "2026-08-03", pnl: 6.98, note: "Current trade 2" }
+        ]
+      });
+
+      let state = loadState();
+
+      function loadState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (parsed && parsed.settings && Array.isArray(parsed.trades)) {
+            return parsed;
+          }
+        } catch (error) {
+          console.warn("Saved data could not be loaded.", error);
+        }
+        return defaultState();
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function safeNumber(value, fallback = 0) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : fallback;
+      }
+
+      function money(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return "—";
+        const sign = number < 0 ? "-" : "";
+        return `${sign}$${Math.abs(number).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}`;
+      }
+
+      function percent(value) {
+        return Number.isFinite(value) ? `${value.toFixed(2)}%` : "—";
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function applySettings() {
+        const settings = state.settings;
+        els.accountSize.value = settings.accountSize;
+        els.targetConsistency.value = settings.targetConsistency;
+        els.dailyTarget.value = settings.dailyTarget;
+        els.lossBuffer.value = settings.lossBuffer;
+        els.startDate.value = settings.startDate || todayISO();
+        els.schedule.value = settings.schedule || "weekdays";
+        els.tradeDate.value = todayISO();
+      }
+
+      function readSettings() {
+        state.settings = {
+          accountSize: Math.max(0, safeNumber(els.accountSize.value)),
+          targetConsistency: Math.min(100, Math.max(0.01, safeNumber(els.targetConsistency.value, 15))),
+          dailyTarget: Math.max(0.01, safeNumber(els.dailyTarget.value, 10)),
+          lossBuffer: Math.max(0, safeNumber(els.lossBuffer.value)),
+          startDate: els.startDate.value || todayISO(),
+          schedule: els.schedule.value === "daily" ? "daily" : "weekdays"
+        };
+        saveState();
+      }
+
+      function getDailySummary() {
+        const map = new Map();
+
+        for (const trade of state.trades) {
+          if (!map.has(trade.date)) {
+            map.set(trade.date, { date: trade.date, pnl: 0, count: 0 });
+          }
+          const day = map.get(trade.date);
+          day.pnl += safeNumber(trade.pnl);
+          day.count += 1;
+        }
+
+        return [...map.values()]
+          .map(day => ({ ...day, pnl: Number(day.pnl.toFixed(2)) }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      function calculateForecast(totalProfit, currentHighest, dailyTarget, targetRate, lossBuffer) {
+        const futureHighest = Math.max(currentHighest, dailyTarget);
+        const targetTotal = futureHighest > 0 ? futureHighest / targetRate : 0;
+        const additionalNeeded = Math.max(0, targetTotal - totalProfit + lossBuffer);
+        const requiredDays = additionalNeeded > 0
+          ? Math.ceil((additionalNeeded - 1e-9) / dailyTarget)
+          : 0;
+        const projectedTotal = totalProfit + requiredDays * dailyTarget - lossBuffer;
+        const projectedConsistency = projectedTotal > 0 && futureHighest > 0
+          ? (futureHighest / projectedTotal) * 100
+          : 0;
+
+        return {
+          futureHighest,
+          targetTotal,
+          additionalNeeded,
+          requiredDays,
+          projectedTotal,
+          projectedConsistency
+        };
+      }
+
+      function addTradingDays(startIso, count, schedule) {
+        const date = new Date(`${startIso}T12:00:00`);
+        if (!Number.isFinite(date.getTime())) return null;
+        if (count <= 0) return date;
+
+        let added = 0;
+
+        while (added < count) {
+          const day = date.getDay();
+          if (schedule === "daily" || (day !== 0 && day !== 6)) {
+            added += 1;
+          }
+          if (added < count) {
+            date.setDate(date.getDate() + 1);
+          }
+        }
+
+        return date;
+      }
+
+      function formatDate(date) {
+        if (!date || !Number.isFinite(date.getTime())) return "—";
+        return new Intl.DateTimeFormat("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }).format(date);
+      }
+
+      function renderTrades() {
+        const sortedTrades = [...state.trades].sort((a, b) => b.date.localeCompare(a.date));
+
+        els.tradeRows.innerHTML = sortedTrades.map(trade => `
+          <tr>
+            <td>${escapeHtml(trade.date)}</td>
+            <td>${escapeHtml(trade.note || "—")}</td>
+            <td class="num ${trade.pnl >= 0 ? "positive" : "negative"}">${money(trade.pnl)}</td>
+            <td class="num">
+              <button class="mini-btn" data-delete="${escapeHtml(trade.id)}">Delete</button>
+            </td>
+          </tr>
+        `).join("");
+
+        els.emptyTrades.classList.toggle("hidden", sortedTrades.length > 0);
+        els.tradeRows.parentElement.classList.toggle("hidden", sortedTrades.length === 0);
+
+        document.querySelectorAll("[data-delete]").forEach(button => {
+          button.addEventListener("click", () => {
+            state.trades = state.trades.filter(trade => trade.id !== button.dataset.delete);
+            saveState();
+            renderAll();
+          });
+        });
+      }
+
+      function renderDailySummary(daily) {
+        els.dailyRows.innerHTML = [...daily].reverse().map(day => `
+          <tr>
+            <td>${escapeHtml(day.date)}</td>
+            <td class="num">${day.count}</td>
+            <td class="num ${day.pnl > 0 ? "positive" : day.pnl < 0 ? "negative" : ""}">
+              ${money(day.pnl)}
+            </td>
+          </tr>
+        `).join("");
+
+        els.emptyDays.classList.toggle("hidden", daily.length > 0);
+        els.dailyRows.parentElement.classList.toggle("hidden", daily.length === 0);
+      }
+
+      function renderScenarios(totalProfit, currentHighest, targetRate, lossBuffer) {
+        const selectedTarget = Number(Math.max(0.01, state.settings.dailyTarget).toFixed(2));
+        const presets = [5, 6, 8, 10, 12];
+        const targets = [...new Set([selectedTarget, ...presets])].sort((a, b) => a - b);
+
+        els.scenarioGrid.innerHTML = targets.map(target => {
+          const forecast = calculateForecast(
+            totalProfit,
+            currentHighest,
+            target,
+            targetRate,
+            lossBuffer
+          );
+
+          return `
+            <div class="scenario">
+              <div class="target">${money(target)} per day</div>
+              <strong>${forecast.requiredDays} day${forecast.requiredDays === 1 ? "" : "s"}</strong>
+              <small>
+                Future highest: ${money(forecast.futureHighest)}<br>
+                Additional profit: ${money(forecast.additionalNeeded)}<br>
+                Projected consistency: ${percent(forecast.projectedConsistency)}
+              </small>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderAll() {
+        readSettings();
+        renderTrades();
+
+        const daily = getDailySummary();
+        renderDailySummary(daily);
+
+        const totalProfit = Number(
+          state.trades.reduce((sum, trade) => sum + safeNumber(trade.pnl), 0).toFixed(2)
+        );
+
+        const currentHighest = Math.max(0, ...daily.map(day => day.pnl));
+        const targetPercent = state.settings.targetConsistency;
+        const targetRate = targetPercent / 100;
+
+        const currentConsistency = totalProfit > 0 && currentHighest > 0
+          ? (currentHighest / totalProfit) * 100
+          : Infinity;
+
+        const accountReturn = state.settings.accountSize > 0
+          ? (totalProfit / state.settings.accountSize) * 100
+          : 0;
+
+        const rawForecast = calculateForecast(
+          totalProfit,
+          currentHighest,
+          state.settings.dailyTarget,
+          targetRate,
+          state.settings.lossBuffer
+        );
+
+        const eligibleNow = totalProfit > 0 && currentConsistency <= targetPercent;
+
+        const forecast = eligibleNow
+          ? {
+              ...rawForecast,
+              futureHighest: currentHighest,
+              targetTotal: totalProfit,
+              additionalNeeded: 0,
+              requiredDays: 0,
+              projectedTotal: totalProfit,
+              projectedConsistency: currentConsistency
+            }
+          : rawForecast;
+
+        els.accountMetric.textContent = money(state.settings.accountSize);
+        els.totalProfit.textContent = money(totalProfit);
+        els.totalProfit.className = totalProfit >= 0 ? "positive" : "negative";
+
+        els.highestDay.textContent = money(currentHighest);
+        els.highestDay.className = "blue";
+
+        els.currentConsistency.textContent = percent(currentConsistency);
+        els.currentConsistency.className = currentConsistency <= targetPercent ? "positive" : "warning";
+
+        els.accountReturn.textContent = percent(accountReturn);
+        els.accountReturn.className = accountReturn >= 0 ? "positive" : "negative";
+
+        els.requiredTotal.textContent = money(forecast.targetTotal);
+        els.requiredTotal.className = "blue";
+
+        els.requiredDays.textContent = String(forecast.requiredDays);
+        els.requiredDays.className = forecast.requiredDays === 0 ? "positive" : "warning";
+
+        els.projectedConsistency.textContent = percent(forecast.projectedConsistency);
+        els.projectedConsistency.className = forecast.projectedConsistency <= targetPercent ? "positive" : "warning";
+
+        els.eligibilityPill.textContent = eligibleNow ? "Target reached" : "More profit required";
+        els.eligibilityPill.classList.toggle("good", eligibleNow);
+
+        els.additionalNeeded.textContent = money(forecast.additionalNeeded);
+        els.neededDetail.textContent =
+          `Required total net profit: ${money(forecast.targetTotal)} · Forecast highest day: ${money(forecast.futureHighest)}`;
+
+        els.forecastDays.textContent = forecast.requiredDays === 0
+          ? "Eligible"
+          : `${forecast.requiredDays} day${forecast.requiredDays === 1 ? "" : "s"}`;
+
+        const eligibilityDate = addTradingDays(
+          state.settings.startDate,
+          forecast.requiredDays,
+          state.settings.schedule
+        );
+
+        els.forecastDate.textContent = forecast.requiredDays === 0
+          ? `Current consistency is within the selected ${targetPercent.toFixed(2)}% rule.`
+          : `Estimated by ${formatDate(eligibilityDate)} at ${money(state.settings.dailyTarget)} per day.`;
+
+        const progress = eligibleNow
+          ? 100
+          : Math.max(0, Math.min(100, (targetPercent / currentConsistency) * 100));
+
+        els.progressBar.style.width = `${Number.isFinite(progress) ? progress : 0}%`;
+
+        els.progressText.textContent = eligibleNow
+          ? `Current consistency ${percent(currentConsistency)} is within the ${targetPercent.toFixed(2)}% target.`
+          : `Progress toward target: ${Number.isFinite(progress) ? progress.toFixed(1) : "0.0"}%.`;
+
+        if (eligibleNow) {
+          els.forecastNotice.className = "notice good";
+          els.forecastNotice.textContent =
+            `Target reached. Current consistency is ${percent(currentConsistency)}. Verify the official prop-firm dashboard and all payout conditions before requesting payout.`;
+        } else {
+          const targetWarning = state.settings.dailyTarget > currentHighest
+            ? ` Your planned ${money(state.settings.dailyTarget)} day will become the new highest profitable day.`
+            : "";
+
+          els.forecastNotice.className = "notice warn";
+          els.forecastNotice.textContent =
+            `You need approximately ${money(forecast.additionalNeeded)} additional net profit. At ${money(state.settings.dailyTarget)} per profitable day, you need about ${forecast.requiredDays} day(s). Projected consistency: ${percent(forecast.projectedConsistency)}.${targetWarning}`;
+        }
+
+        const daysAboveSelectedTarget = daily.filter(
+          day => day.pnl > state.settings.dailyTarget + 1e-9
+        );
+
+        if (daysAboveSelectedTarget.length > 0) {
+          els.dailyWarning.classList.remove("hidden");
+          els.dailyWarning.textContent =
+            `${daysAboveSelectedTarget.length} historical day(s) are above the selected daily target ${money(state.settings.dailyTarget)}. Forecast calculations continue to use the actual highest profitable day.`;
+        } else {
+          els.dailyWarning.classList.add("hidden");
+        }
+
+        renderScenarios(
+          totalProfit,
+          currentHighest,
+          targetRate,
+          state.settings.lossBuffer
+        );
+      }
+
+      function downloadFile(filename, content, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+
+        URL.revokeObjectURL(url);
+      }
+
+      els.tradeForm.addEventListener("submit", event => {
+        event.preventDefault();
+
+        const pnl = safeNumber(els.tradePnl.value, NaN);
+
+        if (!els.tradeDate.value || !Number.isFinite(pnl)) {
+          alert("Please enter a valid trading date and P&L.");
+          return;
+        }
+
+        state.trades.push({
+          id: uid(),
+          date: els.tradeDate.value,
+          pnl: Number(pnl.toFixed(2)),
+          note: els.tradeNote.value.trim()
+        });
+
+        els.tradePnl.value = "";
+        els.tradeNote.value = "";
+
+        saveState();
+        renderAll();
+        els.tradePnl.focus();
+      });
+
+      [
+        els.accountSize,
+        els.targetConsistency,
+        els.dailyTarget,
+        els.lossBuffer,
+        els.startDate,
+        els.schedule
+      ].forEach(element => {
+        element.addEventListener("input", renderAll);
+      });
+
+      els.exportCsv.addEventListener("click", () => {
+        const rows = [
+          ["Date", "Note", "PnL"],
+          ...state.trades.map(trade => [trade.date, trade.note || "", trade.pnl])
+        ];
+
+        const csv = rows
+          .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(","))
+          .join("\n");
+
+        downloadFile("consistency-trades.csv", csv, "text/csv;charset=utf-8");
+      });
+
+      els.exportJson.addEventListener("click", () => {
+        downloadFile(
+          "consistency-calculator-backup.json",
+          JSON.stringify(state, null, 2),
+          "application/json"
+        );
+      });
+
+      els.importJson.addEventListener("change", async () => {
+        const file = els.importJson.files && els.importJson.files[0];
+        if (!file) return;
+
+        try {
+          const imported = JSON.parse(await file.text());
+
+          if (
+            !imported ||
+            typeof imported !== "object" ||
+            !imported.settings ||
+            !Array.isArray(imported.trades)
+          ) {
+            throw new Error("Invalid backup structure.");
+          }
+
+          const validTrades = imported.trades.every(trade =>
+            trade &&
+            typeof trade.date === "string" &&
+            Number.isFinite(Number(trade.pnl))
+          );
+
+          if (!validTrades) {
+            throw new Error("Backup contains invalid trade records.");
+          }
+
+          state = {
+            settings: {
+              accountSize: Math.max(0, safeNumber(imported.settings.accountSize, 1000)),
+              targetConsistency: Math.min(100, Math.max(0.01, safeNumber(imported.settings.targetConsistency, 15))),
+              dailyTarget: Math.max(0.01, safeNumber(imported.settings.dailyTarget, 10)),
+              lossBuffer: Math.max(0, safeNumber(imported.settings.lossBuffer, 0)),
+              startDate: imported.settings.startDate || todayISO(),
+              schedule: imported.settings.schedule === "daily" ? "daily" : "weekdays"
+            },
+            trades: imported.trades.map(trade => ({
+              id: trade.id || uid(),
+              date: trade.date,
+              pnl: Number(Number(trade.pnl).toFixed(2)),
+              note: typeof trade.note === "string" ? trade.note : ""
+            }))
+          };
+
+          saveState();
+          applySettings();
+          renderAll();
+        } catch (error) {
+          alert(`Import failed: ${error.message}`);
+        } finally {
+          els.importJson.value = "";
+        }
+      });
+
+      els.resetData.addEventListener("click", () => {
+        if (!confirm("Reset all saved settings and trades?")) return;
+
+        state = defaultState();
+        saveState();
+        applySettings();
+        renderAll();
+      });
+
+      applySettings();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
